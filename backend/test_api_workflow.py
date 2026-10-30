@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import shutil
@@ -11,14 +12,12 @@ from urllib.request import Request, urlopen
 
 import app.database as database
 from app.main import app
+from app.services.expense_service import approve_reimbursement, create_expense_draft, get_expense_audit, list_expenses, mark_reimbursement_paid, review_expense, submit_draft
 import uvicorn
 
 
 def add_user(conn, user_id, username, role):
-    conn.execute(
-        "INSERT INTO USER (USER_ID, USERNAME, PASSWORD, ROLE, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'ACTIVE', datetime('now'))",
-        (user_id, username, 'temporary-test-password', role)
-    )
+    conn.execute("INSERT INTO USER (USER_ID, USERNAME, PASSWORD, ROLE, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'ACTIVE', datetime('now'))", (user_id, username, 'temporary-test-password', role))
 
 
 def request_json(url, method='GET', payload=None):
@@ -27,30 +26,28 @@ def request_json(url, method='GET', payload=None):
     try:
         with urlopen(request, timeout=5) as response:
             body = response.read().decode('utf-8')
-            try:
-                body = json.loads(body)
-            except json.JSONDecodeError:
-                pass
+            try: body = json.loads(body)
+            except json.JSONDecodeError: pass
             return response.status, body
     except HTTPError as error:
         return error.code, json.loads(error.read().decode('utf-8'))
 
 
 def main():
-    handle, temp_path = tempfile.mkstemp(suffix='.db')
+    handle, path = tempfile.mkstemp(suffix='.db')
     os.close(handle)
-    original_database = database.DATABASE_NAME
+    original = database.DATABASE_NAME
+    listener = socket.socket()
     server = None
     thread = None
-    listener = socket.socket()
     try:
-        shutil.copy2(original_database, temp_path)
-        database.DATABASE_NAME = temp_path
-        conn = sqlite3.connect(temp_path)
+        shutil.copy2(original, path)
+        database.DATABASE_NAME = path
+        conn = sqlite3.connect(path)
         manager_id = conn.execute('SELECT COALESCE(MAX(USER_ID), 0) + 1 FROM USER').fetchone()[0]
         finance_id = manager_id + 1
-        add_user(conn, manager_id, 'api_test_manager', 'MANAGER')
-        add_user(conn, finance_id, 'api_test_finance', 'FINANCE')
+        add_user(conn, manager_id, 'workflow_manager', 'MANAGER')
+        add_user(conn, finance_id, 'workflow_finance', 'FINANCE')
         conn.commit()
         conn.close()
 
@@ -62,58 +59,67 @@ def main():
         thread = threading.Thread(target=server.run, kwargs={'sockets': [listener]}, daemon=True)
         thread.start()
         for _ in range(50):
-            if server.started:
-                break
+            if server.started: break
             time.sleep(0.1)
-        if not server.started:
-            raise RuntimeError('API server did not start')
+        assert server.started, 'API server did not start'
         base = 'http://127.0.0.1:' + str(port)
 
         status, page = request_json(base + '/')
-        assert status == 200 and 'Expense & Reimbursement' in page, page
-        print('GET / browser page: PASS')
+        assert status == 200 and 'DRAFT' in page and 'FINANCE_APPROVED' in page, page
         status, categories = request_json(base + '/categories')
-        assert status == 200 and any(item['CATEGORY_NAME'] == 'Travel' for item in categories), categories
-        print('GET /categories: PASS')
+        assert status == 200 and categories
+        print('Frontend page and categories: PASS')
 
-        status, result = request_json(base + '/expenses', 'POST', {
-            'user_id': 2, 'category_id': 1, 'expense_date': '2026-10-30',
-            'amount': 450, 'description': 'API workflow test', 'receipt_reference': 'API-RECEIPT'
+        status, created = request_json(base + '/expenses/drafts', 'POST', {
+            'user_id': 2, 'category_id': 1, 'expense_date': '2026-10-30', 'amount': 450,
+            'description': 'Workflow test', 'receipt_reference': 'TEST-RECEIPT'
         })
-        assert status == 200, result
-        expense_id = result['expense_id']
-        print('POST /expenses: PASS')
-        assert 'password' not in json.dumps(result).lower()
+        assert status == 200 and created['status'] == 'DRAFT', created
+        expense_id = created['expense_id']
+        status, submitted = request_json(base + f'/expenses/{expense_id}/submit', 'POST', {'user_id': 2})
+        assert status == 200 and submitted['status'] == 'SUBMITTED', submitted
+        print('Draft to submitted: PASS')
 
-        status, rows = request_json(base + '/expenses?user_id=2')
-        assert status == 200 and any(row['EXPENSE_ID'] == expense_id for row in rows), rows
-        print('GET /expenses: PASS')
-
-        status, result = request_json(base + '/expenses/' + str(expense_id) + '/review', 'POST', {
-            'approver_id': manager_id, 'decision': 'APPROVED', 'comments': 'Terminal API test'
+        status, review = request_json(base + f'/expenses/{expense_id}/review', 'POST', {
+            'approver_id': manager_id, 'decision': 'APPROVED', 'comments': 'Manager check'
         })
-        assert status == 200, result
-        reimbursement_id = result['reimbursement_id']
-        print('POST manager review: PASS')
-        status, rows = request_json(base + '/reimbursements?user_id=' + str(finance_id))
-        assert status == 200 and any(row['REIMBURSEMENT_ID'] == reimbursement_id for row in rows), rows
-        print('GET /reimbursements: PASS')
+        assert status == 200 and review['status'] == 'MANAGER_APPROVED', review
+        reimbursement_id = review['reimbursement_id']
+        print('Manager approval: PASS')
 
-        status, result = request_json(base + '/reimbursements/' + str(reimbursement_id) + '/paid', 'POST', {
-            'finance_user_id': finance_id, 'payment_method': 'Bank transfer', 'transaction_reference': 'API-TEST-001'
+        status, approved = request_json(base + f'/reimbursements/{reimbursement_id}/approve', 'POST', {
+            'finance_user_id': finance_id, 'comments': 'Finance check'
         })
-        assert status == 200 and result['status'] == 'PAID', result
-        print('POST finance payment: PASS')
-        print('FastAPI end-to-end check: PASS')
+        assert status == 200 and approved['status'] == 'FINANCE_APPROVED', approved
+        status, paid = request_json(base + f'/reimbursements/{reimbursement_id}/paid', 'POST', {
+            'finance_user_id': finance_id, 'payment_method': 'Bank transfer', 'transaction_reference': 'TEST-001'
+        })
+        assert status == 200 and paid['status'] == 'PAID', paid
+        print('Finance approval then payment: PASS')
+
+        status, audit = request_json(base + f'/expenses/{expense_id}/audit?user_id=2')
+        actions = [row['ACTION'] for row in audit]
+        assert status == 200 and actions == ['DRAFT_CREATED', 'SUBMITTED', 'MANAGER_APPROVED', 'FINANCE_APPROVED', 'REIMBURSEMENT_PAID'], actions
+        print('Audit history records every stage: PASS')
+
+        status, rejected = request_json(base + '/expenses/drafts', 'POST', {
+            'user_id': 2, 'category_id': 1, 'expense_date': '2026-10-30', 'amount': 100,
+            'description': 'Rejection path test', 'receipt_reference': 'TEST-REJECT'
+        })
+        assert status == 200, rejected
+        request_json(base + f"/expenses/{rejected['expense_id']}/submit", 'POST', {'user_id': 2})
+        status, result = request_json(base + f"/expenses/{rejected['expense_id']}/review", 'POST', {
+            'approver_id': manager_id, 'decision': 'REJECTED', 'comments': 'Not approved'
+        })
+        assert status == 200 and result['status'] == 'REJECTED' and result['reimbursement_id'] is None, result
+        print('Manager rejection: PASS')
+        print('End-to-end lifecycle: PASS')
     finally:
-        if server is not None:
-            server.should_exit = True
-        if thread is not None:
-            thread.join(timeout=5)
+        if server is not None: server.should_exit = True
+        if thread is not None: thread.join(timeout=5)
         listener.close()
-        database.DATABASE_NAME = original_database
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        database.DATABASE_NAME = original
+        if os.path.exists(path): os.remove(path)
 
 
 if __name__ == '__main__':

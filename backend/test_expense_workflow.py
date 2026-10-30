@@ -4,7 +4,10 @@ import sqlite3
 import tempfile
 
 from app.database import DATABASE_NAME
-from app.services.expense_service import submit_expense, list_expenses, review_expense, mark_reimbursement_paid
+from app.services.expense_service import (
+    approve_reimbursement, create_expense_draft, get_expense_audit,
+    list_expenses, mark_reimbursement_paid, review_expense, submit_draft,
+)
 
 
 def add_user(conn, user_id, username, role):
@@ -28,20 +31,28 @@ def main():
         add_user(conn, finance_id, 'workflow_finance', 'FINANCE')
         conn.commit()
 
-        expense_id = submit_expense(conn, 2, 1, '2026-10-30', 450.00, 'Workflow test meal', 'receipt-test')
-        print('Submitted:', expense_id, 'PENDING')
+        expense_id = create_expense_draft(conn, 2, 1, '2026-10-30', 450.00, 'Workflow test meal', 'receipt-test')
+        assert conn.execute('SELECT STATUS FROM EXPENSES WHERE EXPENSE_ID=?', (expense_id,)).fetchone()[0] == 'DRAFT'
+        print('Create draft: PASS')
+        submit_draft(conn, expense_id, 2)
+        assert conn.execute('SELECT STATUS FROM EXPENSES WHERE EXPENSE_ID=?', (expense_id,)).fetchone()[0] == 'SUBMITTED'
         assert any(row['EXPENSE_ID'] == expense_id for row in list_expenses(conn, 2))
-        print('Employee can list own expense: PASS')
+        print('Submit and employee list: PASS')
 
         result = review_expense(conn, expense_id, manager_id, 'APPROVED', 'Looks good')
-        print('Manager approval:', result['status'])
-        assert result['reimbursement_id'] is not None
-
+        assert result['status'] == 'MANAGER_APPROVED'
+        finance = approve_reimbursement(conn, result['reimbursement_id'], finance_id, 'Policy checked')
+        assert finance['status'] == 'FINANCE_APPROVED'
         paid = mark_reimbursement_paid(conn, result['reimbursement_id'], finance_id, 'Bank transfer', 'TEST-001')
         assert paid['status'] == 'PAID'
-        print('Finance marks reimbursement paid: PASS')
-        print('End-to-end workflow: PASS')
+        print('Manager approval, finance approval, and payment: PASS')
+
+        history = get_expense_audit(conn, expense_id, 2)
+        actions = [row['ACTION'] for row in history]
+        assert actions == ['DRAFT_CREATED', 'SUBMITTED', 'MANAGER_APPROVED', 'FINANCE_APPROVED', 'REIMBURSEMENT_PAID']
+        print('Audit trail: PASS')
         conn.close()
+        print('End-to-end workflow: PASS')
     finally:
         if os.path.exists(temp.name):
             os.remove(temp.name)

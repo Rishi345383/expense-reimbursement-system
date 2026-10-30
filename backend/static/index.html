@@ -1,169 +1,46 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Expense & Reimbursement</title>
-  <style>
-    :root { font-family: Arial, sans-serif; color: #172033; background: #f3f6fb; }
-    body { margin: 0; }
-    header { background: #163b70; color: white; padding: 22px max(20px, calc((100% - 980px) / 2)); }
-    main { max-width: 980px; margin: 28px auto; padding: 0 18px 40px; }
-    h1 { margin: 0; font-size: 23px; } h2 { margin-top: 0; font-size: 19px; }
-    .card { background: white; padding: 20px; margin: 16px 0; border-radius: 10px; box-shadow: 0 2px 10px #17203312; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-    label { display: block; font-size: 14px; margin: 8px 0; }
-    input, select, textarea { box-sizing: border-box; display: block; width: 100%; margin-top: 5px; padding: 10px; border: 1px solid #ccd4e0; border-radius: 6px; font: inherit; }
-    textarea { min-height: 70px; }
-    button { border: 0; border-radius: 6px; padding: 10px 14px; margin: 7px 6px 0 0; background: #245da5; color: white; cursor: pointer; }
-    button.secondary { background: #637187; } button.reject { background: #a33d45; }
-    .muted { color: #637187; font-size: 14px; } .item { border-top: 1px solid #e5e9ef; padding: 14px 0; }
-    .status { font-weight: bold; color: #245da5; } #notice { margin: 12px 0; color: #a33d45; }
-    @media (max-width: 600px) { main { margin-top: 16px; } }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Expense & Reimbursement</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f3f6fb}body{margin:0}header{background:#163b70;color:white;padding:22px max(20px,calc((100% - 980px)/2))}main{max-width:980px;margin:28px auto;padding:0 18px 40px}h1{margin:0;font-size:23px}h2{margin-top:0;font-size:19px}.flow{margin-top:14px;padding:12px;color:#172033;background:#eaf0f8;border-left:4px solid #637187;overflow-x:auto;white-space:nowrap;font-family:monospace}.card{background:white;padding:20px;margin:16px 0;border-radius:10px;box-shadow:0 2px 10px #17203312}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}label{display:block;font-size:14px;margin:8px 0}input,select,textarea{box-sizing:border-box;display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #ccd4e0;border-radius:6px;font:inherit}textarea{min-height:70px}button{border:0;border-radius:6px;padding:10px 14px;margin:7px 6px 0 0;background:#245da5;color:white;cursor:pointer}button.secondary{background:#637187}button.reject{background:#a33d45}.muted{color:#637187;font-size:14px}.item{border-top:1px solid #e5e9ef;padding:14px 0}.status{font-weight:bold;color:#245da5}#notice{margin:12px 0;color:#a33d45}.history{margin-top:10px;padding:10px;background:#f3f6fb}@media(max-width:600px){main{margin-top:16px}}
+</style>
 </head>
 <body>
-<header><h1>Expense & Reimbursement Management</h1></header>
+<header><h1>Expense & Reimbursement Management</h1><div class="flow">DRAFT → SUBMITTED → MANAGER_APPROVED → FINANCE_APPROVED → PAID</div></header>
 <main>
-  <div id="notice" role="status"></div>
-  <section id="login" class="card">
-    <h2>Sign in</h2>
-    <div class="grid">
-      <label>Username<input id="username" autocomplete="username"></label>
-      <label>Password<input id="password" type="password" autocomplete="current-password"></label>
-    </div>
-    <button id="loginButton">Sign in</button>
-    <button id="registerButton" class="secondary">Create employee account</button>
-    <p class="muted">Demo accounts are ready: manager_demo and finance_demo. Use the passwords provided when the accounts were created. New accounts start as employees.</p>
-  </section>
-
-  <section id="workspace" hidden>
-    <div class="card">
-      <span id="welcome"></span>
-      <button id="logoutButton" class="secondary">Sign out</button>
-    </div>
-
-    <section id="employeePanel" class="card" hidden>
-      <h2>Submit an expense</h2>
-      <form id="expenseForm">
-        <div class="grid">
-          <label>Category<select id="category" required></select></label>
-          <label>Expense date<input id="expenseDate" type="date" required></label>
-          <label>Amount<input id="amount" type="number" min="0.01" step="0.01" required></label>
-          <label>Receipt reference<input id="receipt" placeholder="Enter a receipt reference if required"></label>
-        </div>
-        <label>Description<textarea id="description" required></textarea></label>
-        <button type="submit">Submit expense</button>
-      </form>
-      <h2 style="margin-top:24px">My expenses</h2>
-      <div id="myExpenses"></div>
-    </section>
-
-    <section id="managerPanel" class="card" hidden>
-      <h2>Expenses for review</h2>
-      <div id="managerExpenses"></div>
-    </section>
-
-    <section id="financePanel" class="card" hidden>
-      <h2>Reimbursements to pay</h2>
-      <div id="reimbursements"></div>
-    </section>
-  </section>
+<div id="notice" role="status"></div>
+<section id="login" class="card"><h2>Sign in</h2><div class="grid"><label>Username<input id="username" autocomplete="username"></label><label>Password<input id="password" type="password" autocomplete="current-password"></label></div><button id="loginButton">Sign in</button><button id="registerButton" class="secondary">Create employee account</button><p class="muted">New accounts start as employees. Demo accounts are ready for manager and finance review.</p></section>
+<section id="workspace" hidden><div class="card"><span id="welcome"></span><button id="logoutButton" class="secondary">Sign out</button></div>
+<section id="employeePanel" class="card" hidden><h2>Create an expense draft</h2><form id="expenseForm"><div class="grid"><label>Category<select id="category" required></select></label><label>Expense date<input id="expenseDate" type="date" required></label><label>Amount<input id="amount" type="number" min="0.01" step="0.01" required></label><label>Receipt reference<input id="receipt" placeholder="Enter a receipt reference if required"></label></div><label>Description<textarea id="description" required></textarea></label><button type="submit">Save draft</button></form><h2 style="margin-top:24px">My expenses</h2><div id="myExpenses"></div></section>
+<section id="managerPanel" class="card" hidden><h2>Submitted expenses for manager review</h2><div id="managerExpenses"></div></section>
+<section id="financePanel" class="card" hidden><h2>Finance approval and payment</h2><div id="reimbursements"></div></section></section>
 </main>
 <script>
-  const $ = (id) => document.getElementById(id);
-  let currentUser = null;
-  function showNotice(message) { $('notice').textContent = message || ''; }
-  async function api(url, options = {}) {
-    const response = await fetch(url, options);
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.detail || 'Request failed');
-    return result;
-  }
-  function post(url, data) {
-    return api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-  }
-  function safe(value) {
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  }
-  function expenseMarkup(row, actions) {
-    let buttons = '';
-    if (actions && row.STATUS === 'PENDING') buttons = `<button data-approve="${row.EXPENSE_ID}">Approve</button><button class="reject" data-reject="${row.EXPENSE_ID}">Reject</button>`;
-    return `<div class="item"><strong>${safe(row.CATEGORY_NAME)}</strong> · ${safe(row.EXPENSE_DATE)} · ₹${safe(row.AMOUNT)}<br>${safe(row.DESCRIPTION)}<br><span class="status">${safe(row.STATUS)}</span> · Policy: ${safe(row.POLICY_STATUS)}${row.RECEIPT_REFERENCE ? ' · Receipt: ' + safe(row.RECEIPT_REFERENCE) : ''}<br>${buttons}</div>`;
-  }
-  async function loadCategories() {
-    const categories = await api('/categories');
-    $('category').innerHTML = categories.map(c => `<option value="${c.CATEGORY_ID}">${safe(c.CATEGORY_NAME)}</option>`).join('');
-  }
-  async function loadEmployeeExpenses() {
-    const rows = await api('/expenses?user_id=' + currentUser.user_id);
-    $('myExpenses').innerHTML = rows.length ? rows.map(row => expenseMarkup(row, false)).join('') : '<p class="muted">No expenses submitted yet.</p>';
-  }
-  async function loadManagerExpenses() {
-    const rows = await api('/expenses?user_id=' + currentUser.user_id);
-    const pending = rows.filter(row => row.STATUS === 'PENDING');
-    $('managerExpenses').innerHTML = pending.length ? pending.map(row => expenseMarkup(row, true)).join('') : '<p class="muted">No expenses are waiting for review.</p>';
-    $('managerExpenses').querySelectorAll('[data-approve]').forEach(button => button.onclick = () => review(button.dataset.approve, 'APPROVED'));
-    $('managerExpenses').querySelectorAll('[data-reject]').forEach(button => button.onclick = () => review(button.dataset.reject, 'REJECTED'));
-  }
-  async function loadReimbursements() {
-    const rows = await api('/reimbursements?user_id=' + currentUser.user_id);
-    $('reimbursements').innerHTML = rows.length ? rows.map(row => `<div class="item"><strong>${safe(row.CATEGORY_NAME)}</strong> · ${safe(row.EMPLOYEE_NAME)} · ₹${safe(row.APPROVED_AMOUNT)}<br>${safe(row.DESCRIPTION)}<br><span class="status">${safe(row.STATUS)}</span> · Expense #${safe(row.EXPENSE_ID)}<br>${row.STATUS === 'PENDING' ? `<button data-pay="${row.REIMBURSEMENT_ID}">Mark paid</button>` : ''}</div>`).join('') : '<p class="muted">No reimbursements are waiting for payment.</p>';
-    $('reimbursements').querySelectorAll('[data-pay]').forEach(button => button.onclick = () => pay(button.dataset.pay));
-  }
-  async function refresh() {
-    if (!currentUser) return;
-    if (currentUser.role === 'EMPLOYEE') await loadEmployeeExpenses();
-    if (['MANAGER', 'ADMIN'].includes(currentUser.role)) await loadManagerExpenses();
-    if (['FINANCE', 'ADMIN'].includes(currentUser.role)) await loadReimbursements();
-  }
-  function showWorkspace(user) {
-    currentUser = user;
-    $('login').hidden = true;
-    $('workspace').hidden = false;
-    $('welcome').textContent = `Signed in as ${user.username} (${user.role})`;
-    $('employeePanel').hidden = user.role !== 'EMPLOYEE';
-    $('managerPanel').hidden = !['MANAGER', 'ADMIN'].includes(user.role);
-    $('financePanel').hidden = !['FINANCE', 'ADMIN'].includes(user.role);
-    showNotice('');
-    loadCategories().then(refresh).catch(error => showNotice(error.message));
-  }
-  $('loginButton').onclick = async () => {
-    try {
-      const query = new URLSearchParams({ username: $('username').value, password: $('password').value });
-      showWorkspace(await api('/auth/login?' + query, { method: 'POST' }));
-    } catch (error) { showNotice(error.message); }
-  };
-  $('registerButton').onclick = async () => {
-    try {
-      const query = new URLSearchParams({ username: $('username').value, password: $('password').value });
-      const result = await api('/auth/register?' + query, { method: 'POST' });
-      showNotice(result.message + '. Sign in to continue.');
-    } catch (error) { showNotice(error.message); }
-  };
-  $('logoutButton').onclick = () => { currentUser = null; $('workspace').hidden = true; $('login').hidden = false; $('password').value = ''; showNotice(''); };
-  $('expenseDate').value = new Date().toISOString().slice(0, 10);
-  $('expenseForm').onsubmit = async event => {
-    event.preventDefault();
-    try {
-      await post('/expenses', { user_id: currentUser.user_id, category_id: Number($('category').value), expense_date: $('expenseDate').value, amount: Number($('amount').value), description: $('description').value, receipt_reference: $('receipt').value || null });
-      $('expenseForm').reset(); $('expenseDate').value = new Date().toISOString().slice(0, 10);
-      showNotice('Expense submitted.'); await loadEmployeeExpenses();
-    } catch (error) { showNotice(error.message); }
-  };
-  async function review(expenseId, decision) {
-    const comments = prompt('Optional comment:') || '';
-    try { await post(`/expenses/${expenseId}/review`, { approver_id: currentUser.user_id, decision, comments }); showNotice('Expense ' + decision.toLowerCase() + '.'); await loadManagerExpenses(); }
-    catch (error) { showNotice(error.message); }
-  }
-  async function pay(reimbursementId) {
-    const payment_method = prompt('Payment method (for example, bank transfer):');
-    if (!payment_method) return;
-    const transaction_reference = prompt('Transaction reference:');
-    if (!transaction_reference) return;
-    try { await post(`/reimbursements/${reimbursementId}/paid`, { finance_user_id: currentUser.user_id, payment_method, transaction_reference }); showNotice('Reimbursement marked paid.'); await loadReimbursements(); }
-    catch (error) { showNotice(error.message); }
-  }
+const $=id=>document.getElementById(id);let currentUser=null;
+function notice(text){$('notice').textContent=text||''}
+async function api(url,options={}){const response=await fetch(url,options);const result=await response.json();if(!response.ok)throw new Error(result.detail||'Request failed');return result}
+function post(url,data){return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})}
+function safe(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function historyButton(id){return `<button data-audit="${id}">History</button><div class="history" id="history-${id}" hidden></div>`}
+function expenseMarkup(row,role){let buttons=historyButton(row.EXPENSE_ID);if(role==='EMPLOYEE'&&row.STATUS==='DRAFT')buttons+=`<button data-submit="${row.EXPENSE_ID}">Submit</button>`;if(role==='MANAGER'&&['SUBMITTED','PENDING'].includes(row.STATUS))buttons+=`<button data-approve="${row.EXPENSE_ID}">Approve</button><button class="reject" data-reject="${row.EXPENSE_ID}">Reject</button>`;return `<div class="item"><strong>${safe(row.CATEGORY_NAME)}</strong> · ${safe(row.EXPENSE_DATE)} · ₹${safe(row.AMOUNT)}<br>${safe(row.DESCRIPTION)}<br><span class="status">${safe(row.STATUS)}</span> · Policy: ${safe(row.POLICY_STATUS)}${row.RECEIPT_REFERENCE?' · Receipt: '+safe(row.RECEIPT_REFERENCE):''}<br>${buttons}</div>`}
+function wireHistory(box){box.querySelectorAll('[data-audit]').forEach(b=>b.onclick=()=>showHistory(b.dataset.audit))}
+async function showHistory(id){const box=$('history-'+id);if(!box.hidden){box.hidden=true;return}try{const rows=await api(`/expenses/${id}/audit?user_id=${currentUser.user_id}`);box.innerHTML=rows.length?rows.map(r=>`<div>${safe(r.TIMESTAMP)} · ${safe(r.USERNAME)} · ${safe(r.ACTION)}: ${safe(r.OLD_VALUE||'START')} → ${safe(r.NEW_VALUE)}</div>`).join(''):'No audit entries yet.';box.hidden=false}catch(e){notice(e.message)}}
+async function loadCategories(){const rows=await api('/categories');$('category').innerHTML=rows.map(c=>`<option value="${c.CATEGORY_ID}">${safe(c.CATEGORY_NAME)}</option>`).join('')}
+async function loadEmployee(){const rows=await api('/expenses?user_id='+currentUser.user_id);$('myExpenses').innerHTML=rows.length?rows.map(r=>expenseMarkup(r,'EMPLOYEE')).join(''):'<p class="muted">No expenses yet.</p>';wireHistory($('myExpenses'));$('myExpenses').querySelectorAll('[data-submit]').forEach(b=>b.onclick=()=>submitDraft(b.dataset.submit))}
+async function loadManager(){const rows=await api('/expenses?user_id='+currentUser.user_id);const pending=rows.filter(r=>['SUBMITTED','PENDING'].includes(r.STATUS));$('managerExpenses').innerHTML=pending.length?pending.map(r=>expenseMarkup(r,'MANAGER')).join(''):'<p class="muted">No submitted expenses are waiting for review.</p>';wireHistory($('managerExpenses'));$('managerExpenses').querySelectorAll('[data-approve]').forEach(b=>b.onclick=()=>review(b.dataset.approve,'APPROVED'));$('managerExpenses').querySelectorAll('[data-reject]').forEach(b=>b.onclick=()=>review(b.dataset.reject,'REJECTED'))}
+async function loadFinance(){const rows=await api('/reimbursements?user_id='+currentUser.user_id);$('reimbursements').innerHTML=rows.length?rows.map(r=>{const button=r.STATUS==='PENDING'?`<button data-finance-approve="${r.REIMBURSEMENT_ID}">Approve reimbursement</button>`:`<button data-pay="${r.REIMBURSEMENT_ID}">Mark paid</button>`;return `<div class="item"><strong>${safe(r.CATEGORY_NAME)}</strong> · ${safe(r.EMPLOYEE_NAME)} · ₹${safe(r.APPROVED_AMOUNT)}<br>${safe(r.DESCRIPTION)}<br><span class="status">${safe(r.EXPENSE_STATUS)}</span> · Finance: ${safe(r.STATUS)} · Expense #${safe(r.EXPENSE_ID)}<br>${button}${historyButton(r.EXPENSE_ID)}</div>`}).join(''):'<p class="muted">No reimbursements are waiting for finance.</p>';wireHistory($('reimbursements'));$('reimbursements').querySelectorAll('[data-finance-approve]').forEach(b=>b.onclick=()=>financeApprove(b.dataset.financeApprove));$('reimbursements').querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>pay(b.dataset.pay))}
+async function refresh(){if(currentUser.role==='EMPLOYEE')await loadEmployee();if(['MANAGER','ADMIN'].includes(currentUser.role))await loadManager();if(['FINANCE','ADMIN'].includes(currentUser.role))await loadFinance()}
+function showWorkspace(user){currentUser=user;$('login').hidden=true;$('workspace').hidden=false;$('welcome').textContent=`Signed in as ${user.username} (${user.role})`;$('employeePanel').hidden=user.role!=='EMPLOYEE';$('managerPanel').hidden=!['MANAGER','ADMIN'].includes(user.role);$('financePanel').hidden=!['FINANCE','ADMIN'].includes(user.role);notice('');loadCategories().then(refresh).catch(e=>notice(e.message))}
+$('loginButton').onclick=async()=>{try{const q=new URLSearchParams({username:$('username').value,password:$('password').value});showWorkspace(await api('/auth/login?'+q,{method:'POST'}))}catch(e){notice(e.message)}};
+$('registerButton').onclick=async()=>{try{const q=new URLSearchParams({username:$('username').value,password:$('password').value});const r=await api('/auth/register?'+q,{method:'POST'});notice(r.message+'. Sign in to continue.')}catch(e){notice(e.message)}};
+$('logoutButton').onclick=()=>{currentUser=null;$('workspace').hidden=true;$('login').hidden=false;$('password').value='';notice('')};$('expenseDate').value=new Date().toISOString().slice(0,10);
+$('expenseForm').onsubmit=async e=>{e.preventDefault();try{await post('/expenses/drafts',{user_id:currentUser.user_id,category_id:Number($('category').value),expense_date:$('expenseDate').value,amount:Number($('amount').value),description:$('description').value,receipt_reference:$('receipt').value||null});$('expenseForm').reset();$('expenseDate').value=new Date().toISOString().slice(0,10);notice('Draft saved. Submit it from My expenses when ready.');await loadEmployee()}catch(err){notice(err.message)}};
+async function submitDraft(id){try{await post(`/expenses/${id}/submit`,{user_id:currentUser.user_id});notice('Expense submitted for manager review.');await loadEmployee()}catch(e){notice(e.message)}}
+async function review(id,decision){const comments=prompt('Optional manager comment:')||'';try{await post(`/expenses/${id}/review`,{approver_id:currentUser.user_id,decision,comments});notice(decision==='APPROVED'?'Manager approved the expense.':'Expense rejected.');await loadManager()}catch(e){notice(e.message)}}
+async function financeApprove(id){const comments=prompt('Optional finance comment:')||'';try{await post(`/reimbursements/${id}/approve`,{finance_user_id:currentUser.user_id,comments});notice('Finance approved the reimbursement.');await loadFinance()}catch(e){notice(e.message)}}
+async function pay(id){const payment_method=prompt('Payment method (for example, bank transfer):');if(!payment_method)return;const transaction_reference=prompt('Transaction reference:');if(!transaction_reference)return;try{await post(`/reimbursements/${id}/paid`,{finance_user_id:currentUser.user_id,payment_method,transaction_reference});notice('Reimbursement marked paid.');await loadFinance()}catch(e){notice(e.message)}}
 </script>
 </body>
 </html>
